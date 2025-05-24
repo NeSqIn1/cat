@@ -121,7 +121,7 @@ async def send_love(context: ContextTypes.DEFAULT_TYPE):
 
 # Команда /start для запуска
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Привет! Любовные признания будут отправляться ежечасно.")
+    await update.message.reply_text("йоооо, каждый час ты будешь чувствовать мою любовь <3")
     context.job_queue.run_repeating(send_love, interval=3600, first=0)
 
 
