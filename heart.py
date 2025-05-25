@@ -1,25 +1,30 @@
-import logging
 import os
+import logging
 import random
+import asyncio
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
-# Получаем настройки из переменных окружения
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TARGET_USER_ID = int(os.environ.get("TARGET_USER_ID", "0"))
 OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
 
-
 if not TOKEN or not TARGET_USER_ID or not OWNER_ID:
-    raise ValueError("Проверь, что TELEGRAM_BOT_TOKEN, TARGET_USER_ID и OWNER_ID заданы в переменных окружения.")
+    raise ValueError("Нужно задать TELEGRAM_BOT_TOKEN, TARGET_USER_ID и OWNER_ID в переменных окружения")
 
-# Настройка логирования
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
 )
+
 logger = logging.getLogger(__name__)
 
-# Список из 100 нежных признаний без нумерации
 messages = [
     "Ты согрреваешь моё сердце, котик!",
     "Каждый раз, когда я вижу тебя, я таю, котик!",
@@ -117,19 +122,24 @@ messages = [
 ]
 
 
-# Функция отправки признания
-async def send_love(context: ContextTypes.DEFAULT_TYPE):
-    msg = random.choice(messages)
-    await context.bot.send_message(chat_id=TARGET_USER_ID, text=msg)
+# ⏱ Асинхронный фоновый цикл
+async def love_loop(application):
+    await application.wait_until_ready()  # ждёт запуска бота
+    while True:
+        try:
+            msg = random.choice(messages)
+            await application.bot.send_message(chat_id=TARGET_USER_ID, text=msg)
+        except Exception as e:
+            logger.error(f"Ошибка при отправке признания: {e}")
+        await asyncio.sleep(1800)  # 0.5 час
 
 
-# Команда /start для запуска
+# 🎬 Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("йоооо, каждый час ты будешь чувствовать мою любовь <3")
-    context.job_queue.run_repeating(send_love, interval=1, first=1)
+    await update.message.reply_text("йооо, каждые полчаса ты будешь чувствовать мою любовь")
 
 
-# Пересылка всех входящих текстовых сообщений владельцу
+# 🔁 Пересылка всех входящих сообщений владельцу
 async def forward_to_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await context.bot.forward_message(
@@ -138,11 +148,15 @@ async def forward_to_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
             message_id=update.message.message_id
         )
     except Exception as e:
-        logger.error(f"Ошибка при пересылке сообщения: {e}")
+        logger.error(f"Ошибка пересылки: {e}")
 
 
+# 🚀 Запуск
 if __name__ == '__main__':
     app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler('start', start))
+    app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, forward_to_owner))
+
+    # Стартуем фоновую задачу
+    asyncio.get_event_loop().create_task(love_loop(app))
     app.run_polling()
