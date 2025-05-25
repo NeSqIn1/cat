@@ -177,4 +177,16 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import asyncio
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # В случае если Railway или другая среда уже запустила loop:
+            asyncio.ensure_future(main())
+        else:
+            loop.run_until_complete(main())
+    except RuntimeError:
+        # Если вообще нет event loop, создаём новый (например, Windows без loop)
+        asyncio.run(main())
+
