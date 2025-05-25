@@ -176,17 +176,13 @@ async def main() -> None:
     await application.run_polling()
 
 
+import asyncio
+
 if __name__ == "__main__":
-    import asyncio
+    import nest_asyncio
+    nest_asyncio.apply()
 
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # В случае если Railway или другая среда уже запустила loop:
-            asyncio.ensure_future(main())
-        else:
-            loop.run_until_complete(main())
-    except RuntimeError:
-        # Если вообще нет event loop, создаём новый (например, Windows без loop)
-        asyncio.run(main())
+    from telegram.ext import ApplicationBuilder
+    # Импортируй свою функцию `main()` если она отдельно
 
+    asyncio.get_event_loop().run_until_complete(main())
