@@ -1,31 +1,35 @@
-import os
-import logging
-import random
 import asyncio
-from telegram import Update
+import logging
+import os
+import random
+
+from telegram import Update, Bot
 from telegram.ext import (
     ApplicationBuilder,
+    Application,
     CommandHandler,
     MessageHandler,
     ContextTypes,
     filters,
 )
 
-TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-TARGET_USER_ID = int(os.environ.get("TARGET_USER_ID", "0"))
-OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
+# ENV config
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TARGET_USER_ID = os.getenv("TARGET_USER_ID")
+OWNER_ID = os.getenv("OWNER_ID")
 
 if not TOKEN or not TARGET_USER_ID or not OWNER_ID:
-    raise ValueError("Нужно задать TELEGRAM_BOT_TOKEN, TARGET_USER_ID и OWNER_ID в переменных окружения")
+    raise ValueError("Set TELEGRAM_BOT_TOKEN, TARGET_USER_ID, OWNER_ID in environment")
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+TARGET_USER_ID = int(TARGET_USER_ID)
+OWNER_ID = int(OWNER_ID)
 
+# Logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-messages = [
+# Love messages
+MESSAGES = [
     "Ты согрреваешь моё сердце, котик!",
     "Каждый раз, когда я вижу тебя, я таю, котик!",
     "Твоё присутствие — мой самый дорогой подарок, котик!",
@@ -122,25 +126,26 @@ messages = [
 ]
 
 
-# ⏱ Асинхронный фоновый цикл
-async def love_loop(application):
-    await application.wait_until_ready()  # ждёт запуска бота
+# Background task
+async def love_task(bot: Bot, chat_id: int) -> None:
+    await asyncio.sleep(5)  # delay before first message
     while True:
         try:
-            msg = random.choice(messages)
-            await application.bot.send_message(chat_id=TARGET_USER_ID, text=msg)
+            message = random.choice(MESSAGES)
+            await bot.send_message(chat_id=chat_id, text=message)
+            logger.info(f"Sent: {message}")
         except Exception as e:
-            logger.error(f"Ошибка при отправке признания: {e}")
-        await asyncio.sleep(1)  # 0.5 час
+            logger.error(f"Error sending love: {e}")
+        await asyncio.sleep(1)  # 1 hour
 
 
-# 🎬 Команда /start
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("йооо, каждые полчаса ты будешь чувствовать мою любовь")
+# /start command
+async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("Привет, котик! Я буду писать тебе каждый час ❤️")
 
 
-# 🔁 Пересылка всех входящих сообщений владельцу
-async def forward_to_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Forwarding messages
+async def forward_to_owner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         await context.bot.forward_message(
             chat_id=OWNER_ID,
@@ -148,15 +153,28 @@ async def forward_to_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
             message_id=update.message.message_id
         )
     except Exception as e:
-        logger.error(f"Ошибка пересылки: {e}")
+        logger.error(f"Forward error: {e}")
 
 
-# 🚀 Запуск
-if __name__ == '__main__':
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, forward_to_owner))
+# Post-start hook
+async def on_startup(application: Application) -> None:
+    asyncio.create_task(love_task(application.bot, TARGET_USER_ID))
 
-    # Стартуем фоновую задачу
-    asyncio.get_event_loop().create_task(love_loop(app))
-    app.run_polling()
+
+# Main launcher
+async def main() -> None:
+    application = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .post_init(on_startup)
+        .build()
+    )
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, forward_to_owner))
+
+    await application.run_polling()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
