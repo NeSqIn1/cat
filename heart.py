@@ -128,7 +128,7 @@ MESSAGES = [
 
 # Background task
 async def love_task(bot: Bot, chat_id: int) -> None:
-    await asyncio.sleep(5)  # delay before first message
+    await asyncio.sleep(1800)  # delay before first message
     while True:
         try:
             message = random.choice(MESSAGES)
