@@ -136,12 +136,12 @@ async def love_task(bot: Bot, chat_id: int) -> None:
             logger.info(f"Sent: {message}")
         except Exception as e:
             logger.error(f"Error sending love: {e}")
-        await asyncio.sleep(1)  # 1 hour
+        await asyncio.sleep(1800)  # 1 hour
 
 
 # /start command
 async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Привет, котик! Я буду писать тебе каждый час ❤️")
+    await update.message.reply_text("йооо, каждые полчаса ты будешь чувствовать мою любовь <3")
 
 
 # Forwarding messages
