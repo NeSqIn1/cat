@@ -9,6 +9,10 @@ TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TARGET_USER_ID = int(os.environ.get("TARGET_USER_ID", "0"))
 OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
 
+
+if not TOKEN or not TARGET_USER_ID or not OWNER_ID:
+    raise ValueError("Проверь, что TELEGRAM_BOT_TOKEN, TARGET_USER_ID и OWNER_ID заданы в переменных окружения.")
+
 # Настройка логирования
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
