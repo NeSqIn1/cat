@@ -131,7 +131,7 @@ async def love_loop(application):
             await application.bot.send_message(chat_id=TARGET_USER_ID, text=msg)
         except Exception as e:
             logger.error(f"Ошибка при отправке признания: {e}")
-        await asyncio.sleep(1800)  # 0.5 час
+        await asyncio.sleep(1)  # 0.5 час
 
 
 # 🎬 Команда /start
